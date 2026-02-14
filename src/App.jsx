@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 
+import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
 
 import TeamManager from "./screens/TeamManager";
@@ -46,32 +47,34 @@ export default function App() {
   };
 
   return (
-    <div
-      className="fixed inset-0 w-full h-full overflow-y-auto
-                 bg-white text-black
-                 dark:bg-gray-900 dark:text-white"
-    >
-      <header className="w-full p-4 flex justify-between items-center">
-        <div className="text-xl font-bold">Futsal Coach</div>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-        </div>
-      </header>
-      <AnimatePresence mode="wait">
-        <Motion.main
-          as="main"
-          key={screen}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          id="app-main"
-          role="main"
-          className="w-full h-full"
-        >
-          {screens[screen] || <div>Screen not found</div>}
-        </Motion.main>
-      </AnimatePresence>
-    </div>
+    <ThemeProvider>
+      <div
+        className="fixed inset-0 w-full h-full overflow-y-auto
+                   bg-white text-black
+                   dark:bg-gray-900 dark:text-white"
+      >
+        <header className="w-full p-4 flex justify-between items-center">
+          <div className="text-xl font-bold">Futsal Coach</div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+          </div>
+        </header>
+        <AnimatePresence mode="wait">
+          <Motion.main
+            as="main"
+            key={screen}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            id="app-main"
+            role="main"
+            className="w-full h-full"
+          >
+            {screens[screen] || <div>Screen not found</div>}
+          </Motion.main>
+        </AnimatePresence>
+      </div>
+    </ThemeProvider>
   );
 }
