@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Lint
+      run: npm run lint --if-present
+
+    - name: Run unit tests
+      run: npx vitest run --reporter verbose
+
+    - name: Build
+      run: npm run build --if-present
+
+    - name: Serve dist and run accessibility check
+      run: |
+        npx --yes serve@14.2.5 dist -l 5173 &
+        sleep 2
+        node scripts/interactiveAxe.cjs http://localhost:5173
+
+    - name: Upload axe report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pa11y-interactive
+        path: pa11y-interactive.json
