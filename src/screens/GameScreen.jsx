@@ -630,8 +630,12 @@ export default function GameScreen({ selectedTeam, setScreen }) {
           </div>
 
           {/* Scores */}
-          <div aria-live="polite" aria-atomic="true" className="text-7xl font-bold font-mono tabular-nums w-28 text-center" aria-label={`Team score ${teamScore}`}>{teamScore}</div>
-          <div aria-live="polite" aria-atomic="true" className="text-7xl font-bold font-mono tabular-nums w-28 text-center" aria-label={`Opponent score ${oppScore}`}>{oppScore}</div>
+          <div className="text-7xl font-bold font-mono tabular-nums w-28 text-center">
+            <span aria-live="polite" aria-atomic="true" aria-label={`Team score ${teamScore}`}>{teamScore}</span>
+          </div>
+          <div className="text-7xl font-bold font-mono tabular-nums w-28 text-center">
+            <span aria-live="polite" aria-atomic="true" aria-label={`Opponent score ${oppScore}`}>{oppScore}</span>
+          </div>
 
           {/* Opponent Goal Buttons */}
           <div className="flex gap-2">

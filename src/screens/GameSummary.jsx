@@ -576,7 +576,9 @@ export default function GameSummary({ setScreen }) {
               </div>
 
               <div className="text-5xl font-extrabold mb-2">
-                {lastGame.scoreTeam} — {lastGame.scoreOpp}
+                <span aria-live="polite" aria-atomic="true" aria-label={`Team score ${lastGame.scoreTeam}`}>{lastGame.scoreTeam}</span>
+                <span className="mx-4" aria-hidden="true"> — </span>
+                <span aria-live="polite" aria-atomic="true" aria-label={`Opponent score ${lastGame.scoreOpp}`}>{lastGame.scoreOpp}</span>
               </div>
 
               <div className="text-2xl font-bold">
@@ -605,12 +607,20 @@ export default function GameSummary({ setScreen }) {
 
         <div className="flex justify-between text-lg mb-2">
           <span>1st Half</span>
-          <span>{half1GoalsTeam} — {half1GoalsOpp}</span>
+          <span>
+            <span aria-live="polite" aria-atomic="true" aria-label={`1st half team goals ${half1GoalsTeam}`}>{half1GoalsTeam}</span>
+            <span className="mx-2" aria-hidden="true"> — </span>
+            <span aria-live="polite" aria-atomic="true" aria-label={`1st half opponent goals ${half1GoalsOpp}`}>{half1GoalsOpp}</span>
+          </span>
         </div>
 
         <div className="flex justify-between text-lg mb-2">
           <span>2nd Half</span>
-          <span>{half2GoalsTeam} — {half2GoalsOpp}</span>
+          <span>
+            <span aria-live="polite" aria-atomic="true" aria-label={`2nd half team goals ${half2GoalsTeam}`}>{half2GoalsTeam}</span>
+            <span className="mx-2" aria-hidden="true"> — </span>
+            <span aria-live="polite" aria-atomic="true" aria-label={`2nd half opponent goals ${half2GoalsOpp}`}>{half2GoalsOpp}</span>
+          </span>
         </div>
 
         {hasOvertime && (
