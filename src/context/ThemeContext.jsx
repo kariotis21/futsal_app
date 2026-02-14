@@ -27,9 +27,10 @@ export function ThemeProvider({ children }) {
 
   function toggleTheme() {
     const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+    // Apply theme to DOM immediately (before state update)
     applyTheme(newIsDark);
+    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+    setIsDark(newIsDark);
   }
 
   const value = {
