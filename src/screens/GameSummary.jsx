@@ -455,7 +455,7 @@ export default function GameSummary({ setScreen }) {
     doc.setFontSize(11);
     if (teamWon) {
       doc.setTextColor(...colors.success);
-      doc.text(`★ ${lastGame.teamName}`, pageWidth / 2, y + 14, { align: 'center' });
+      doc.text(`[WINNER] ${lastGame.teamName}`, pageWidth / 2, y + 14, { align: 'center' });
     } else {
       doc.setTextColor(...colors.text);
       doc.text(lastGame.teamName, pageWidth / 2, y + 14, { align: 'center' });
@@ -471,7 +471,7 @@ export default function GameSummary({ setScreen }) {
     doc.setFontSize(11);
     if (oppWon) {
       doc.setTextColor(...colors.danger);
-      doc.text(`★ ${lastGame.opponent}`, pageWidth / 2, y + 29, { align: 'center' });
+      doc.text(`[WINNER] ${lastGame.opponent}`, pageWidth / 2, y + 29, { align: 'center' });
     } else {
       doc.setTextColor(...colors.text);
       doc.text(lastGame.opponent, pageWidth / 2, y + 29, { align: 'center' });
