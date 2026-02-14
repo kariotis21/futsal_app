@@ -392,6 +392,12 @@ export default function GameSummary({ setScreen }) {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Center content with margins - use only middle 50% of page
+    const contentWidth = pageWidth * 0.5;
+    const leftMargin = pageWidth * 0.25;
+    const rightMargin = leftMargin + contentWidth;
+    
     let y = 15;
 
     // Color palette based on theme
@@ -412,33 +418,33 @@ export default function GameSummary({ setScreen }) {
 
     // Header with gradient effect (simulate with rectangles)
     doc.setFillColor(...colors.primary);
-    doc.rect(0, 0, pageWidth, 35, 'F');
+    doc.rect(leftMargin, 0, contentWidth, 35, 'F');
     
     // Title
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('GAME SUMMARY', pageWidth / 2, 15, { align: 'center' });
+    doc.text('GAME SUMMARY', pageWidth / 2, 13, { align: 'center' });
     
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(lastGame.date, pageWidth / 2, 22, { align: 'center' });
+    doc.text(lastGame.date, pageWidth / 2, 21, { align: 'center' });
     
     if (hasOvertime) {
       doc.setTextColor(...colors.warning);
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('OVERTIME', pageWidth / 2, 29, { align: 'center' });
+      doc.text('OVERTIME', pageWidth / 2, 28, { align: 'center' });
     }
 
     y = 42;
 
     // Final Score Card
     doc.setFillColor(...colors.lightBg);
-    doc.roundedRect(15, y, pageWidth - 30, 32, 3, 3, 'F');
+    doc.roundedRect(leftMargin, y, contentWidth, 32, 3, 3, 'F');
     
     doc.setTextColor(...colors.text);
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text('FINAL SCORE', pageWidth / 2, y + 6, { align: 'center' });
     
@@ -446,7 +452,7 @@ export default function GameSummary({ setScreen }) {
     const oppWon = lastGame.scoreOpp > lastGame.scoreTeam;
     
     // Team names
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     if (teamWon) {
       doc.setTextColor(...colors.success);
       doc.text(`★ ${lastGame.teamName}`, pageWidth / 2, y + 14, { align: 'center' });
@@ -456,13 +462,13 @@ export default function GameSummary({ setScreen }) {
     }
     
     // Score
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...colors.primary);
-    doc.text(`${lastGame.scoreTeam} — ${lastGame.scoreOpp}`, pageWidth / 2, y + 22, { align: 'center' });
+    doc.text(`${lastGame.scoreTeam} - ${lastGame.scoreOpp}`, pageWidth / 2, y + 22, { align: 'center' });
     
     // Opponent
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     if (oppWon) {
       doc.setTextColor(...colors.danger);
       doc.text(`★ ${lastGame.opponent}`, pageWidth / 2, y + 29, { align: 'center' });
@@ -473,75 +479,75 @@ export default function GameSummary({ setScreen }) {
 
     y += 38;
 
-    // Two column layout for stats
-    const colWidth = (pageWidth - 30) / 2 - 3;
-    const col1X = 15;
-    const col2X = col1X + colWidth + 6;
+    // Two column layout for stats (within centered content)
+    const colWidth = (contentWidth - 6) / 2;
+    const col1X = leftMargin + 3;
+    const col2X = col1X + colWidth + 3;
 
     // Scoring by Period (Left Column)
     doc.setFillColor(...colors.lightBg);
-    doc.roundedRect(col1X, y, colWidth, 32, 2, 2, 'F');
+    doc.roundedRect(leftMargin, y, colWidth, 32, 2, 2, 'F');
     
     doc.setTextColor(...colors.text);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Scoring by Period', col1X + 3, y + 6);
-    
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`1st Half:`, col1X + 3, y + 13);
-    doc.text(`${half1GoalsTeam} — ${half1GoalsOpp}`, col1X + colWidth - 3, y + 13, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text('Scoring by Period', col1X, y + 6);
     
-    doc.text(`2nd Half:`, col1X + 3, y + 20);
-    doc.text(`${half2GoalsTeam} — ${half2GoalsOpp}`, col1X + colWidth - 3, y + 20, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`1st Half:`, col1X, y + 13);
+    doc.text(`${half1GoalsTeam} - ${half1GoalsOpp}`, leftMargin + colWidth - 3, y + 13, { align: 'right' });
+    
+    doc.text(`2nd Half:`, col1X, y + 20);
+    doc.text(`${half2GoalsTeam} - ${half2GoalsOpp}`, leftMargin + colWidth - 3, y + 20, { align: 'right' });
     
     if (hasOvertime) {
       doc.setTextColor(...colors.warning);
-      doc.text(`Overtime:`, col1X + 3, y + 27);
-      doc.text(`${otGoalsTeam} — ${otGoalsOpp}`, col1X + colWidth - 3, y + 27, { align: 'right' });
+      doc.text(`Overtime:`, col1X, y + 27);
+      doc.text(`${otGoalsTeam} - ${otGoalsOpp}`, leftMargin + colWidth - 3, y + 27, { align: 'right' });
     }
 
     // Team Totals (Right Column)
     doc.setFillColor(...colors.lightBg);
-    doc.roundedRect(col2X, y, colWidth, 32, 2, 2, 'F');
+    doc.roundedRect(col2X - 3, y, colWidth, 32, 2, 2, 'F');
     
     doc.setTextColor(...colors.text);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Team Totals', col2X + 3, y + 6);
-    
     doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Team Totals', col2X, y + 6);
+    
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Goals:`, col2X + 3, y + 13);
-    doc.text(`${totalGoals}`, col2X + colWidth - 3, y + 13, { align: 'right' });
+    doc.text(`Goals:`, col2X, y + 13);
+    doc.text(`${totalGoals}`, rightMargin - 3, y + 13, { align: 'right' });
     
-    doc.text(`Assists:`, col2X + 3, y + 20);
-    doc.text(`${totalAssists}`, col2X + colWidth - 3, y + 20, { align: 'right' });
+    doc.text(`Assists:`, col2X, y + 20);
+    doc.text(`${totalAssists}`, rightMargin - 3, y + 20, { align: 'right' });
     
-    doc.text(`Fouls:`, col2X + 3, y + 27);
-    doc.text(`${(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}`, col2X + colWidth - 3, y + 27, { align: 'right' });
+    doc.text(`Fouls:`, col2X, y + 27);
+    doc.text(`${(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}`, rightMargin - 3, y + 27, { align: 'right' });
 
     y += 38;
 
     // Goal Timeline
     doc.setFillColor(...colors.lightBg);
     const timelineHeight = 85;
-    doc.roundedRect(15, y, pageWidth - 30, timelineHeight, 2, 2, 'F');
+    doc.roundedRect(leftMargin, y, contentWidth, timelineHeight, 2, 2, 'F');
     
     doc.setTextColor(...colors.text);
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Goal Timeline', 18, y + 6);
+    doc.text('Goal Timeline', leftMargin + 3, y + 6);
     
     y += 12;
     
     if (!lastGame.timeline || lastGame.timeline.length === 0) {
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...colors.textSecondary);
-      doc.text('No goals recorded.', 18, y);
+      doc.text('No goals recorded.', leftMargin + 3, y);
     } else {
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       let currentPeriod = null;
       let lineCount = 0;
@@ -560,7 +566,7 @@ export default function GameSummary({ setScreen }) {
           if (lineCount < maxLines) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(...colors.primary);
-            doc.text(periodLabel === "OT" ? "OVERTIME" : periodLabel === "1H" ? "FIRST HALF" : "SECOND HALF", 18, y);
+            doc.text(periodLabel === "OT" ? "OVERTIME" : periodLabel === "1H" ? "FIRST HALF" : "SECOND HALF", leftMargin + 3, y);
             y += 5;
             lineCount++;
             currentPeriod = periodLabel;
@@ -572,7 +578,7 @@ export default function GameSummary({ setScreen }) {
         doc.setFont('helvetica', 'normal');
         if (ev.opponentGoal) {
           doc.setTextColor(...colors.danger);
-          doc.text(`${ev.time} — Opponent Goal`, 21, y);
+          doc.text(`${ev.time} - Opponent Goal`, leftMargin + 6, y);
         } else {
           const scorer = lastGame.players.find(p => String(p.id) === String(ev.scorerId));
           const assister = ev.assistId
@@ -580,10 +586,10 @@ export default function GameSummary({ setScreen }) {
             : null;
 
           doc.setTextColor(...colors.text);
-          const goalText = `${ev.time} — #${scorer?.id || "?"} ${scorer?.name || "Unknown"}`;
+          const goalText = `${ev.time} - #${scorer?.id || "?"} ${scorer?.name || "Unknown"}`;
           const assistText = assister ? ` (A: #${assister.id} ${assister.name})` : '';
           
-          doc.text(goalText + assistText, 21, y);
+          doc.text(goalText + assistText, leftMargin + 6, y);
         }
         
         y += 4.5;
@@ -595,12 +601,12 @@ export default function GameSummary({ setScreen }) {
 
     // Player Stats
     doc.setFillColor(...colors.lightBg);
-    doc.roundedRect(15, y, pageWidth - 30, 45, 2, 2, 'F');
+    doc.roundedRect(leftMargin, y, contentWidth, 45, 2, 2, 'F');
     
     doc.setTextColor(...colors.text);
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Player Stats', 18, y + 6);
+    doc.text('Player Stats', leftMargin + 3, y + 6);
     
     y += 12;
 
@@ -609,17 +615,17 @@ export default function GameSummary({ setScreen }) {
       .slice(0, 8); // Limit to 8 players to fit on page
 
     if (activePlayers.length === 0) {
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...colors.textSecondary);
-      doc.text('No goals or assists recorded.', 18, y);
+      doc.text('No goals or assists recorded.', leftMargin + 3, y);
     } else {
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       
-      // Two column layout for players
-      const playerCol1X = 18;
-      const playerCol2X = pageWidth / 2 + 5;
+      // Two column layout for players (within centered content)
+      const playerCol1X = leftMargin + 3;
+      const playerCol2X = pageWidth / 2 + 3;
       let playerY = y;
       
       activePlayers.forEach(([pid, stats], idx) => {
@@ -638,7 +644,7 @@ export default function GameSummary({ setScreen }) {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...colors.textSecondary);
         const statsText = `G: ${stats.goal || 0}  A: ${stats.assist || 0}`;
-        doc.text(statsText, x + 35, isLeftCol ? playerY : playerY);
+        doc.text(statsText, x + 25, isLeftCol ? playerY : playerY);
       });
     }
 
