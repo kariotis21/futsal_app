@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import GoalScorerSheet from "../components/GoalScorerSheet";
 import AssistSelectorSheet from "../components/AssistSelectorSheet";
 import BottomSheet from "../components/BottomSheet";
 import Toast from "../components/Toast";
 import Button from "../components/Button";
 import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from "../context/ThemeContext";
 
 
 
@@ -44,7 +44,7 @@ function ErrorBoundary({ children }) {
 }
 
 export default function GameSummary({ setScreen }) {
-  const summaryRef = useRef(null);
+  const { isDark } = useTheme();
   const [showAssistInEdit, setShowAssistInEdit] = useState(false);
   const [toast, setToast] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
@@ -387,44 +387,268 @@ export default function GameSummary({ setScreen }) {
     document.body.removeChild(link);
   }
 
-  async function exportPDF() {
-    if (!lastGame || !summaryRef.current) return;
+  function exportPDF() {
+    if (!lastGame) return;
 
-    try {
-      setToast('Generating PDF...');
-      
-      // Capture the summary content as an image
-      const canvas = await html2canvas(summaryRef.current, {
-        scale: 2, // Higher quality
-        backgroundColor: null, // Preserve transparency
-        logging: false,
-        useCORS: true,
-      });
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 15;
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+    // Color palette based on theme
+    const colors = {
+      primary: isDark ? [59, 130, 246] : [37, 99, 235], // blue
+      success: [34, 197, 94], // green
+      danger: [239, 68, 68], // red
+      warning: [249, 115, 22], // orange
+      gray: isDark ? [75, 85, 99] : [156, 163, 175],
+      lightBg: isDark ? [31, 41, 55] : [243, 244, 246],
+      text: isDark ? [229, 231, 235] : [17, 24, 39],
+      textSecondary: isDark ? [156, 163, 175] : [107, 114, 128],
+    };
 
-      // Calculate dimensions to fit the page
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 10;
+    // Background
+    doc.setFillColor(...(isDark ? [17, 24, 39] : [255, 255, 255]));
+    doc.rect(0, 0, pageWidth, 297, 'F');
 
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-      pdf.save(`futsal_summary_${lastGame.date.replace(/\s+/g, "_")}.pdf`);
-      
-      setToast('PDF exported successfully!');
-    } catch (err) {
-      console.error('PDF export failed:', err);
-      setToast('PDF export failed');
+    // Header with gradient effect (simulate with rectangles)
+    doc.setFillColor(...colors.primary);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('GAME SUMMARY', pageWidth / 2, 15, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(lastGame.date, pageWidth / 2, 22, { align: 'center' });
+    
+    if (hasOvertime) {
+      doc.setTextColor(...colors.warning);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('OVERTIME', pageWidth / 2, 29, { align: 'center' });
     }
+
+    y = 42;
+
+    // Final Score Card
+    doc.setFillColor(...colors.lightBg);
+    doc.roundedRect(15, y, pageWidth - 30, 32, 3, 3, 'F');
+    
+    doc.setTextColor(...colors.text);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FINAL SCORE', pageWidth / 2, y + 6, { align: 'center' });
+    
+    const teamWon = lastGame.scoreTeam > lastGame.scoreOpp;
+    const oppWon = lastGame.scoreOpp > lastGame.scoreTeam;
+    
+    // Team names
+    doc.setFontSize(12);
+    if (teamWon) {
+      doc.setTextColor(...colors.success);
+      doc.text(`★ ${lastGame.teamName}`, pageWidth / 2, y + 14, { align: 'center' });
+    } else {
+      doc.setTextColor(...colors.text);
+      doc.text(lastGame.teamName, pageWidth / 2, y + 14, { align: 'center' });
+    }
+    
+    // Score
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...colors.primary);
+    doc.text(`${lastGame.scoreTeam} — ${lastGame.scoreOpp}`, pageWidth / 2, y + 22, { align: 'center' });
+    
+    // Opponent
+    doc.setFontSize(12);
+    if (oppWon) {
+      doc.setTextColor(...colors.danger);
+      doc.text(`★ ${lastGame.opponent}`, pageWidth / 2, y + 29, { align: 'center' });
+    } else {
+      doc.setTextColor(...colors.text);
+      doc.text(lastGame.opponent, pageWidth / 2, y + 29, { align: 'center' });
+    }
+
+    y += 38;
+
+    // Two column layout for stats
+    const colWidth = (pageWidth - 30) / 2 - 3;
+    const col1X = 15;
+    const col2X = col1X + colWidth + 6;
+
+    // Scoring by Period (Left Column)
+    doc.setFillColor(...colors.lightBg);
+    doc.roundedRect(col1X, y, colWidth, 32, 2, 2, 'F');
+    
+    doc.setTextColor(...colors.text);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Scoring by Period', col1X + 3, y + 6);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`1st Half:`, col1X + 3, y + 13);
+    doc.text(`${half1GoalsTeam} — ${half1GoalsOpp}`, col1X + colWidth - 3, y + 13, { align: 'right' });
+    
+    doc.text(`2nd Half:`, col1X + 3, y + 20);
+    doc.text(`${half2GoalsTeam} — ${half2GoalsOpp}`, col1X + colWidth - 3, y + 20, { align: 'right' });
+    
+    if (hasOvertime) {
+      doc.setTextColor(...colors.warning);
+      doc.text(`Overtime:`, col1X + 3, y + 27);
+      doc.text(`${otGoalsTeam} — ${otGoalsOpp}`, col1X + colWidth - 3, y + 27, { align: 'right' });
+    }
+
+    // Team Totals (Right Column)
+    doc.setFillColor(...colors.lightBg);
+    doc.roundedRect(col2X, y, colWidth, 32, 2, 2, 'F');
+    
+    doc.setTextColor(...colors.text);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Team Totals', col2X + 3, y + 6);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Goals:`, col2X + 3, y + 13);
+    doc.text(`${totalGoals}`, col2X + colWidth - 3, y + 13, { align: 'right' });
+    
+    doc.text(`Assists:`, col2X + 3, y + 20);
+    doc.text(`${totalAssists}`, col2X + colWidth - 3, y + 20, { align: 'right' });
+    
+    doc.text(`Fouls:`, col2X + 3, y + 27);
+    doc.text(`${(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}`, col2X + colWidth - 3, y + 27, { align: 'right' });
+
+    y += 38;
+
+    // Goal Timeline
+    doc.setFillColor(...colors.lightBg);
+    const timelineHeight = 85;
+    doc.roundedRect(15, y, pageWidth - 30, timelineHeight, 2, 2, 'F');
+    
+    doc.setTextColor(...colors.text);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Goal Timeline', 18, y + 6);
+    
+    y += 12;
+    
+    if (!lastGame.timeline || lastGame.timeline.length === 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...colors.textSecondary);
+      doc.text('No goals recorded.', 18, y);
+    } else {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      let currentPeriod = null;
+      let lineCount = 0;
+      const maxLines = 12;
+
+      lastGame.timeline.forEach((ev, idx) => {
+        if (lineCount >= maxLines) return;
+        
+        const periodLabel = ev.period === "OT" ? "OT" : ev.period === "1H" ? "1H" : "2H";
+        
+        if (currentPeriod !== periodLabel) {
+          if (currentPeriod !== null && lineCount < maxLines) {
+            y += 2;
+            lineCount++;
+          }
+          if (lineCount < maxLines) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...colors.primary);
+            doc.text(periodLabel === "OT" ? "OVERTIME" : periodLabel === "1H" ? "FIRST HALF" : "SECOND HALF", 18, y);
+            y += 5;
+            lineCount++;
+            currentPeriod = periodLabel;
+          }
+        }
+        
+        if (lineCount >= maxLines) return;
+
+        doc.setFont('helvetica', 'normal');
+        if (ev.opponentGoal) {
+          doc.setTextColor(...colors.danger);
+          doc.text(`${ev.time} — Opponent Goal`, 21, y);
+        } else {
+          const scorer = lastGame.players.find(p => String(p.id) === String(ev.scorerId));
+          const assister = ev.assistId
+            ? lastGame.players.find(p => String(p.id) === String(ev.assistId))
+            : null;
+
+          doc.setTextColor(...colors.text);
+          const goalText = `${ev.time} — #${scorer?.id || "?"} ${scorer?.name || "Unknown"}`;
+          const assistText = assister ? ` (A: #${assister.id} ${assister.name})` : '';
+          
+          doc.text(goalText + assistText, 21, y);
+        }
+        
+        y += 4.5;
+        lineCount++;
+      });
+    }
+
+    y = 42 + 38 + 85 + 6;
+
+    // Player Stats
+    doc.setFillColor(...colors.lightBg);
+    doc.roundedRect(15, y, pageWidth - 30, 45, 2, 2, 'F');
+    
+    doc.setTextColor(...colors.text);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Player Stats', 18, y + 6);
+    
+    y += 12;
+
+    const activePlayers = Object.entries(lastGame.playerStats || {})
+      .filter(([, stats]) => (stats.goal || 0) > 0 || (stats.assist || 0) > 0)
+      .slice(0, 8); // Limit to 8 players to fit on page
+
+    if (activePlayers.length === 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...colors.textSecondary);
+      doc.text('No goals or assists recorded.', 18, y);
+    } else {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      
+      // Two column layout for players
+      const playerCol1X = 18;
+      const playerCol2X = pageWidth / 2 + 5;
+      let playerY = y;
+      
+      activePlayers.forEach(([pid, stats], idx) => {
+        const player = lastGame.players.find(p => String(p.id) === pid);
+        if (!player) return;
+
+        const isLeftCol = idx % 2 === 0;
+        const x = isLeftCol ? playerCol1X : playerCol2X;
+        
+        if (idx > 0 && idx % 2 === 0) playerY += 5;
+
+        doc.setTextColor(...colors.text);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`#${player.id} ${player.name}`, x, isLeftCol ? playerY : playerY);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...colors.textSecondary);
+        const statsText = `G: ${stats.goal || 0}  A: ${stats.assist || 0}`;
+        doc.text(statsText, x + 35, isLeftCol ? playerY : playerY);
+      });
+    }
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(...colors.textSecondary);
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 285, { align: 'center' });
+
+    doc.save(`futsal_summary_${lastGame.date.replace(/\s+/g, "_")}.pdf`);
+    setToast('PDF exported successfully!');
   }
 
   // Share summary: try Web Share API with files, otherwise copy CSV to clipboard
@@ -487,14 +711,12 @@ export default function GameSummary({ setScreen }) {
   return (
     <div className="p-6 pb-24 text-black dark:text-white bg-white dark:bg-gray-900 min-h-screen space-y-6">
 
-      {/* Content to export to PDF */}
-      <div ref={summaryRef} className="space-y-6 bg-white dark:bg-gray-900 p-4">
-        {/* TITLE */}
-        <h1 className="text-3xl font-bold text-center">Game Summary</h1>
-        <p className="text-center text-gray-600 dark:text-gray-300">
-          {lastGame.date}
-          {hasOvertime && <span className="block text-orange-500 font-bold mt-1">Overtime</span>}
-        </p>
+      {/* TITLE */}
+      <h1 className="text-3xl font-bold text-center">Game Summary</h1>
+      <p className="text-center text-gray-600 dark:text-gray-300">
+        {lastGame.date}
+        {hasOvertime && <span className="block text-orange-500 font-bold mt-1">Overtime</span>}
+      </p>
 
       {/* FINAL SCORE CARD */}
       <div className="p-6 rounded-2xl shadow text-center 
@@ -706,8 +928,6 @@ export default function GameSummary({ setScreen }) {
           <div>Fouls: {(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}</div>
         </div>
       </div>
-      </div>
-      {/* End of PDF export content */}
 
       {/* EXPORT / SHARE ACTIONS */}
       <div className="space-y-3">
