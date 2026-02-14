@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import GoalScorerSheet from "../components/GoalScorerSheet";
 import AssistSelectorSheet from "../components/AssistSelectorSheet";
 import BottomSheet from "../components/BottomSheet";
@@ -43,6 +44,7 @@ function ErrorBoundary({ children }) {
 }
 
 export default function GameSummary({ setScreen }) {
+  const summaryRef = useRef(null);
   const [showAssistInEdit, setShowAssistInEdit] = useState(false);
   const [toast, setToast] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
@@ -385,105 +387,44 @@ export default function GameSummary({ setScreen }) {
     document.body.removeChild(link);
   }
 
-  function exportPDF() {
-    if (!lastGame) return;
+  async function exportPDF() {
+    if (!lastGame || !summaryRef.current) return;
 
-    const doc = new jsPDF();
-    let y = 20;
-
-    // Title & Info
-    doc.setFontSize(20);
-    doc.text("Game Summary", 14, y);
-    y += 10;
-
-    doc.setFontSize(12);
-    doc.text(`Date: ${lastGame.date}`, 14, y);
-    y += 8;
-    doc.text(`Teams: ${lastGame.teamName} vs ${lastGame.opponent}`, 14, y);
-    y += 8;
-    doc.text(`Final Score: ${lastGame.scoreTeam} — ${lastGame.scoreOpp}`, 14, y);
-    if (hasOvertime) {
-      doc.setFontSize(14);
-      doc.setTextColor(255, 140, 0); // orange
-      doc.text("OVERTIME", 14, y += 8);
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-    }
-    y += 15;
-
-    // Goal Timeline with Period Dividers
-    doc.setFontSize(14);
-    doc.text("Goal Timeline", 14, y);
-    y += 10;
-
-    if (!lastGame.timeline || lastGame.timeline.length === 0) {
-      doc.setFontSize(12);
-      doc.text("No goals recorded.", 14, y);
-    } else {
-      let currentPeriod = null;
-
-      lastGame.timeline.forEach((ev) => {
-        const periodLabel = ev.period === "OT" ? "OVERTIME" : ev.period === "1H" ? "FIRST HALF" : "SECOND HALF";
-
-        if (currentPeriod !== periodLabel) {
-          if (currentPeriod !== null) y += 5;
-          doc.setFontSize(14);
-          doc.setFont("helvetica", "bold");
-          doc.text(periodLabel, 14, y);
-          y += 10;
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "normal");
-          currentPeriod = periodLabel;
-        }
-
-        if (ev.opponentGoal) {
-          doc.text(`${ev.time} — Opponent Goal`, 20, y);
-        } else {
-          const scorer = lastGame.players.find(p => String(p.id) === String(ev.scorerId));
-          const assister = ev.assistId
-            ? lastGame.players.find(p => String(p.id) === String(ev.assistId))
-            : null;
-
-          doc.text(
-            `${ev.time} — #${scorer?.id || "?"} ${scorer?.name || "Unknown"}` +
-              (assister ? ` (Assist: #${assister.id} ${assister.name})` : ""),
-            20,
-            y
-          );
-        }
-        y += 8;
+    try {
+      setToast('Generating PDF...');
+      
+      // Capture the summary content as an image
+      const canvas = await html2canvas(summaryRef.current, {
+        scale: 2, // Higher quality
+        backgroundColor: null, // Preserve transparency
+        logging: false,
+        useCORS: true,
       });
-    }
 
-    y += 10;
-
-    // Player Stats
-    doc.setFontSize(14);
-    doc.text("Player Stats", 14, y);
-    y += 10;
-
-    const activePlayers = Object.entries(lastGame.playerStats || {})
-      .filter(([, stats]) => (stats.goal || 0) > 0 || (stats.assist || 0) > 0);
-
-    if (activePlayers.length === 0) {
-      doc.setFontSize(12);
-      doc.text("No goals or assists recorded.", 14, y);
-    } else {
-      doc.setFontSize(12);
-      activePlayers.forEach(([pid, stats]) => {
-        const player = lastGame.players.find(p => String(p.id) === pid);
-        if (!player) return;
-
-        doc.text(
-          `#${player.id} ${player.name} — Goals: ${stats.goal || 0}, Assists: ${stats.assist || 0}`,
-          14,
-          y
-        );
-        y += 8;
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
       });
-    }
 
-    doc.save(`futsal_summary_${lastGame.date.replace(/\s+/g, "_")}.pdf`);
+      // Calculate dimensions to fit the page
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`futsal_summary_${lastGame.date.replace(/\s+/g, "_")}.pdf`);
+      
+      setToast('PDF exported successfully!');
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      setToast('PDF export failed');
+    }
   }
 
   // Share summary: try Web Share API with files, otherwise copy CSV to clipboard
@@ -546,12 +487,14 @@ export default function GameSummary({ setScreen }) {
   return (
     <div className="p-6 pb-24 text-black dark:text-white bg-white dark:bg-gray-900 min-h-screen space-y-6">
 
-      {/* TITLE */}
-      <h1 className="text-3xl font-bold text-center">Game Summary</h1>
-      <p className="text-center text-gray-600 dark:text-gray-300">
-        {lastGame.date}
-        {hasOvertime && <span className="block text-orange-500 font-bold mt-1">Overtime</span>}
-      </p>
+      {/* Content to export to PDF */}
+      <div ref={summaryRef} className="space-y-6 bg-white dark:bg-gray-900 p-4">
+        {/* TITLE */}
+        <h1 className="text-3xl font-bold text-center">Game Summary</h1>
+        <p className="text-center text-gray-600 dark:text-gray-300">
+          {lastGame.date}
+          {hasOvertime && <span className="block text-orange-500 font-bold mt-1">Overtime</span>}
+        </p>
 
       {/* FINAL SCORE CARD */}
       <div className="p-6 rounded-2xl shadow text-center 
@@ -763,6 +706,8 @@ export default function GameSummary({ setScreen }) {
           <div>Fouls: {(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}</div>
         </div>
       </div>
+      </div>
+      {/* End of PDF export content */}
 
       {/* EXPORT / SHARE ACTIONS */}
       <div className="space-y-3">
