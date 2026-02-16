@@ -517,13 +517,13 @@ export default function GameSummary({ setScreen }) {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(`Goals:`, col2X, y + 14);
-    doc.text(`${totalGoals}`, leftMargin + contentWidth - 3, y + 14, { align: 'right' });
+    doc.text(`${totalGoals}`, leftMargin + contentWidth - 8, y + 14, { align: 'right' });
     
     doc.text(`Assists:`, col2X, y + 21);
-    doc.text(`${totalAssists}`, leftMargin + contentWidth - 3, y + 21, { align: 'right' });
+    doc.text(`${totalAssists}`, leftMargin + contentWidth - 8, y + 21, { align: 'right' });
     
     doc.text(`Fouls:`, col2X, y + 28);
-    doc.text(`${(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}`, leftMargin + contentWidth - 3, y + 28, { align: 'right' });
+    doc.text(`${(lastGame.half1?.foulsTeam || 0) + (lastGame.half2?.foulsTeam || 0)}`, leftMargin + contentWidth - 8, y + 28, { align: 'right' });
 
     y += 36;
 
@@ -618,7 +618,7 @@ export default function GameSummary({ setScreen }) {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...colors.textSecondary);
         const statsText = `G:${stats.goal || 0} A:${stats.assist || 0}`;
-        doc.text(statsText, leftMargin + contentWidth - 3, playerY, { align: 'right' });
+        doc.text(statsText, leftMargin + contentWidth - 8, playerY, { align: 'right' });
         
         playerY += 3.5;
       });
