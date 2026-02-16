@@ -527,10 +527,13 @@ export default function GameSummary({ setScreen }) {
 
     y += 36;
 
-    // Goal Timeline - with plenty of space for all goals
+    // Goal Timeline (Left) and Player Stats (Right) - side by side
+    const sectionHeight = 110;
+    const sectionColWidth = (contentWidth - 6) / 2;
+    
+    // Goal Timeline - Left Column
     doc.setFillColor(...colors.lightBg);
-    const timelineHeight = 110;
-    doc.roundedRect(leftMargin, y, contentWidth, timelineHeight, 2, 2, 'F');
+    doc.roundedRect(leftMargin, y, sectionColWidth, sectionHeight, 2, 2, 'F');
     
     doc.setTextColor(...colors.text);
     doc.setFontSize(10);
@@ -545,12 +548,12 @@ export default function GameSummary({ setScreen }) {
       doc.setTextColor(...colors.textSecondary);
       doc.text('No goals recorded.', leftMargin + 3, timelineY);
     } else {
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
       let currentPeriod = null;
 
       lastGame.timeline.forEach((ev) => {
-        if (timelineY > y + timelineHeight - 5) return; // Stop if we exceed box height
+        if (timelineY > y + sectionHeight - 5) return; // Stop if we exceed box height
         
         const periodLabel = ev.period === "OT" ? "OT" : ev.period === "1H" ? "1H" : "2H";
         
@@ -559,45 +562,36 @@ export default function GameSummary({ setScreen }) {
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(...colors.primary);
           doc.text(periodLabel, leftMargin + 3, timelineY);
-          timelineY += 4;
+          timelineY += 3.5;
           doc.setFont('helvetica', 'normal');
           currentPeriod = periodLabel;
         }
         
-        if (timelineY > y + timelineHeight - 5) return;
+        if (timelineY > y + sectionHeight - 5) return;
 
         if (ev.opponentGoal) {
           doc.setTextColor(...colors.danger);
-          doc.text(`${ev.time} - Opponent Goal`, leftMargin + 6, timelineY);
+          doc.text(`${ev.time} - Opp Goal`, leftMargin + 6, timelineY);
         } else {
           const scorer = lastGame.players.find(p => String(p.id) === String(ev.scorerId));
-          const assister = ev.assistId
-            ? lastGame.players.find(p => String(p.id) === String(ev.assistId))
-            : null;
-
           doc.setTextColor(...colors.text);
-          const goalText = `${ev.time} - #${scorer?.id || "?"} ${scorer?.name || "Unknown"}`;
-          const assistText = assister ? ` (A: #${assister.id} ${assister.name})` : '';
-          
-          doc.text(goalText + assistText, leftMargin + 6, timelineY);
+          doc.text(`${ev.time} - #${scorer?.id || "?"} ${scorer?.name || "Unknown"}`, leftMargin + 6, timelineY);
         }
         
         timelineY += 3.5;
       });
     }
 
-    y += 116;
-
-    // Player Stats
+    // Player Stats - Right Column
     doc.setFillColor(...colors.lightBg);
-    doc.roundedRect(leftMargin, y, contentWidth, 45, 2, 2, 'F');
+    doc.roundedRect(leftMargin + sectionColWidth + 3, y, sectionColWidth, sectionHeight, 2, 2, 'F');
     
     doc.setTextColor(...colors.text);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Player Stats', leftMargin + 3, y + 6);
+    doc.text('Player Stats', leftMargin + sectionColWidth + 6, y + 6);
     
-    let playerY = y + 13;
+    let playerY = y + 12;
 
     const activePlayers = Object.entries(lastGame.playerStats || {})
       .filter(([, stats]) => (stats.goal || 0) > 0 || (stats.assist || 0) > 0);
@@ -606,29 +600,31 @@ export default function GameSummary({ setScreen }) {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...colors.textSecondary);
-      doc.text('No goals or assists recorded.', leftMargin + 3, playerY);
+      doc.text('No goals or assists.', leftMargin + sectionColWidth + 6, playerY);
     } else {
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
       
       activePlayers.forEach(([pid, stats]) => {
-        if (playerY > y + 42) return; // Stop if we exceed box height
+        if (playerY > y + sectionHeight - 5) return; // Stop if we exceed box height
 
         const player = lastGame.players.find(p => String(p.id) === pid);
         if (!player) return;
 
         doc.setTextColor(...colors.text);
         doc.setFont('helvetica', 'bold');
-        doc.text(`#${player.id} ${player.name}`, leftMargin + 3, playerY);
+        doc.text(`#${player.id} ${player.name}`, leftMargin + sectionColWidth + 6, playerY);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...colors.textSecondary);
-        const statsText = `Goals: ${stats.goal || 0}, Assists: ${stats.assist || 0}`;
-        doc.text(statsText, leftMargin + 25, playerY);
+        const statsText = `G:${stats.goal || 0} A:${stats.assist || 0}`;
+        doc.text(statsText, leftMargin + contentWidth - 3, playerY, { align: 'right' });
         
-        playerY += 4;
+        playerY += 3.5;
       });
     }
+
+    y += (sectionHeight + 6);
 
     // Footer
     doc.setFontSize(7);
