@@ -1,15 +1,9 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import BottomSheet from "./BottomSheet";
 
 export default function AssistSelectorSheet({ players, scorerId, onSelect, onClose, preselectedId }) {
   const assistOptions = players.filter((p) => String(p.id) !== String(scorerId));
-  const [query, setQuery] = useState("");
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return assistOptions;
-    return assistOptions.filter(p => `${p.id} ${p.name}`.toLowerCase().includes(q));
-  }, [assistOptions, query]);
+  const filtered = assistOptions;
 
   const [focused, setFocused] = useState(-1);
   const itemRefs = useRef([]);
@@ -30,15 +24,7 @@ export default function AssistSelectorSheet({ players, scorerId, onSelect, onClo
       <div className="text-center space-y-4">
         <h2 id="assist-sheet-title" className="text-xl font-bold">Select Assist</h2>
 
-        <input
-          aria-label="Search players"
-          placeholder="Search players..."
-          className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-black dark:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          onChange={(e) => setQuery(e.target.value)}
-          value={query}
-        />
-
-        <div tabIndex={0} onKeyDown={handleListKey} className="space-y-3 max-h-[55vh] overflow-y-auto px-2">
+        <div tabIndex={0} onKeyDown={handleListKey} className="space-y-3 max-h-[70vh] overflow-y-auto px-2">
           {filtered.map((p, index) => (
             <button
               key={p.id}
